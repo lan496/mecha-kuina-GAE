@@ -1,3 +1,4 @@
 src/secret/
 
 *.csv
+*.json
