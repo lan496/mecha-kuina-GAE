@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 func FetchTweets(a *anaconda.TwitterApi, username string, n int, sinceId int64) (tweets []string, latestId int64, err error) {
@@ -64,6 +65,9 @@ func Tokenize(tweet string) (surfaces []string) {
 	surfaces = make([]string, 0)
 
 	for _, token := range tokens {
+		if strings.Contains(token.Surface, "EOS") {
+			token.Surface = "EOS"
+		}
 		surfaces = append(surfaces, token.Surface)
 	}
 	return

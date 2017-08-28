@@ -1,18 +1,24 @@
 package main
 
 import (
-	"fmt"
-	"github.com/lan496/mecha-kuina/src/secret"
-	"github.com/lan496/mecha-kuina/src/twitter"
+	"github.com/lan496/mecha-kuina/src/update"
+	"log"
 	"os"
 )
 
 func main() {
-	anaconda.SetConsumerKey(secret.ConsumerKey)
-	anaconda.SetConsumerSecret(secret.ConsumerSecret)
-	api := anaconda.NewTwitterApi(secret.AccessToken, secret.AccessTokenSecret)
+	idFile, err := os.Create("data/latestId.csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer idFile.Close()
 
-	tweets, latestId, _ := twitter.FetchTweets(api, secret.Username, 2000, 12345)
+	var tweetsFile *os.File
+	tweetsFile, err = os.Create("data/tweets.csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer tweetsFile.Close()
 
-	fmt.Println("fetched tweets:", len(tweets))
+	update.StoreTweetsAndLatestId(tweetsFile, idFile)
 }
