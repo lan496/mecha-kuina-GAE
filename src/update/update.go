@@ -1,13 +1,13 @@
 package update
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/lan496/mecha-kuina/src/secret"
 	"github.com/lan496/mecha-kuina/src/twitter"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func StoreTweetsAndLatestId(twf, idf *os.File, sinceId int64) (ss [][]string, latestId int64) {
@@ -21,17 +21,15 @@ func StoreTweetsAndLatestId(twf, idf *os.File, sinceId int64) (ss [][]string, la
 	fmt.Println("fetched tweets:", len(tweets))
 	fmt.Println("latestId:", latestId)
 
-	tmpid, _ := json.Marshal(strconv.FormatInt(latestId, 10))
-	idf.Write(tmpid)
+	idf.WriteString(strconv.FormatInt(latestId, 10))
 
 	for _, tw := range tweets {
 		surfaces := twitter.Tokenize(twitter.TrimURL(tw))
-		fmt.Println(surfaces)
+		storedStr := strings.Join(surfaces, " ") + "\n"
+		fmt.Print(storedStr)
+		twf.WriteString(storedStr)
 		ss = append(ss, surfaces)
 	}
-	tmpss, _ := json.Marshal(ss)
-	twf.Write(tmpss)
-
 	return
 }
 

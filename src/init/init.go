@@ -9,14 +9,14 @@ import (
 )
 
 func main() {
-	idFile, err := os.Create("data/latestId.json")
+	idFile, err := os.Create("data/latestId.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer idFile.Close()
 
 	var tweetsFile *os.File
-	tweetsFile, err = os.Create("data/tweets.json")
+	tweetsFile, err = os.Create("data/tweets.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
