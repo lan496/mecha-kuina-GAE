@@ -33,6 +33,26 @@ func StoreTweetsAndLatestId(twf, idf *os.File, sinceId int64) (ss [][]string, la
 	return
 }
 
+func LatestTweetsAndId(sinceId int64) (ss []string, latestId int64) {
+	anaconda.SetConsumerKey(secret.ConsumerKey)
+	anaconda.SetConsumerSecret(secret.ConsumerSecret)
+	api := anaconda.NewTwitterApi(secret.AccessToken, secret.AccessTokenSecret)
+
+	var tweets []string
+	tweets, latestId, _ = twitter.FetchTweets(api, secret.Username, 2000, sinceId)
+
+	fmt.Println("fetched tweets:", len(tweets))
+	fmt.Println("latestId:", latestId)
+
+	for _, tw := range tweets {
+		surfaces := twitter.Tokenize(twitter.TrimURL(tw))
+		storedStr := strings.Join(surfaces, " ") + "\n"
+		fmt.Print(storedStr)
+		ss = append(ss, storedStr)
+	}
+	return
+}
+
 func UpdateMarkovSpace(ms map[string][]string, surfaces []string) {
 	for i := 0; i < len(surfaces)-3; i++ {
 		key1 := surfaces[i] + "^" + surfaces[i+1]

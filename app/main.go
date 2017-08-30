@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"cloud.google.com/go/storage"
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/lan496/mecha-kuina/src/secret"
 	"github.com/lan496/mecha-kuina/src/twitter"
+	"github.com/lan496/mecha-kuina/src/update"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
@@ -70,9 +72,65 @@ func ReadLatestId(r *http.Request, filename string) (latestId int64) {
 	return
 }
 
+func ReadTweets(r *http.Request, filename string) (tweets []string) {
+	ctx := appengine.NewContext(r)
+	bucket, err := file.DefaultBucketName(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to get default GCS bucket name: %v", err)
+	}
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to get client", err)
+	}
+
+	reader, err := client.Bucket(bucket).Object(filename).NewReader(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to get reader", err)
+	}
+	defer reader.Close()
+
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		tweets = append(tweets, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		log.Errorf(ctx, "", err)
+	}
+	return
+}
+
 func Update(w http.ResponseWriter, r *http.Request) {
-	latestId := ReadLatestId(r, "latestId.txt")
-	fmt.Fprintln(w, latestId)
+	prevLatestId := ReadLatestId(r, "latestId.txt")
+	fmt.Fprintln(w, prevLatestId)
+	prevTweets := ReadTweets(r, "tweets.txt")
+
+	tweets, latestId := update.LatestTweetsAndId(prevLatestId)
+	ctx := appengine.NewContext(r)
+	bucket, err := file.DefaultBucketName(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to get default GCS bucket name: %v", err)
+	}
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to get client", err)
+	}
+
+	tweetsWriter := client.Bucket(bucket).Object("tweets.txt").NewWriter(ctx)
+	defer tweetsWriter.Close()
+
+	for _, tw := range tweets {
+		fmt.Fprintf(tweetsWriter, "%s\n", tw)
+	}
+	for _, tw := range prevTweets {
+		fmt.Fprintf(tweetsWriter, "%s\n", tw)
+	}
+
+	idWriter := client.Bucket(bucket).Object("latestId.txt").NewWriter(ctx)
+	defer idWriter.Close()
+
+	fmt.Fprintf(idWriter, "%d\n", latestId)
 }
 
 func init() {
