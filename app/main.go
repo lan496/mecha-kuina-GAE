@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"cloud.google.com/go/storage"
 	"fmt"
 	"github.com/ChimeraCoder/anaconda"
+	"github.com/lan496/mecha-kuina/src/markov"
 	"github.com/lan496/mecha-kuina/src/secret"
 	"github.com/lan496/mecha-kuina/src/twitter"
 	"github.com/lan496/mecha-kuina/src/update"
@@ -14,6 +14,7 @@ import (
 	"google.golang.org/appengine/urlfetch"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 func FetchTweetsHandler(username string, n int, sinceId int64) func(http.ResponseWriter, *http.Request) {
@@ -50,62 +51,16 @@ func Tweet(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "kuinakuina")
 }
 
-func ReadLatestId(r *http.Request, filename string) (latestId int64) {
-	ctx := appengine.NewContext(r)
-	bucket, err := file.DefaultBucketName(ctx)
-	if err != nil {
-		log.Errorf(ctx, "failed to get default GCS bucket name: %v", err)
-	}
-
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		log.Errorf(ctx, "failed to get client", err)
-	}
-
-	reader, err := client.Bucket(bucket).Object(filename).NewReader(ctx)
-	if err != nil {
-		log.Errorf(ctx, "failed to get reader", err)
-	}
-	defer reader.Close()
-
-	fmt.Fscanf(reader, "%d", &latestId)
-	return
-}
-
-func ReadTweets(r *http.Request, filename string) (tweets []string) {
-	ctx := appengine.NewContext(r)
-	bucket, err := file.DefaultBucketName(ctx)
-	if err != nil {
-		log.Errorf(ctx, "failed to get default GCS bucket name: %v", err)
-	}
-
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		log.Errorf(ctx, "failed to get client", err)
-	}
-
-	reader, err := client.Bucket(bucket).Object(filename).NewReader(ctx)
-	if err != nil {
-		log.Errorf(ctx, "failed to get reader", err)
-	}
-	defer reader.Close()
-
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		tweets = append(tweets, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		log.Errorf(ctx, "", err)
-	}
-	return
-}
-
 func Update(w http.ResponseWriter, r *http.Request) {
-	prevLatestId := ReadLatestId(r, "latestId.txt")
+	prevLatestId, _ := update.ReadLatestId(r, "latestId.txt")
 	fmt.Fprintln(w, prevLatestId)
-	prevTweets := ReadTweets(r, "tweets.txt")
+	prevTweets, _ := update.ReadTweets(r, "tweets.txt")
+	fmt.Fprintf(w, "%d tweets are collected.\n", len(prevTweets))
 
-	tweets, latestId := update.LatestTweetsAndId(prevLatestId)
+	tweets, latestId, _ := update.LatestTweetsAndId(prevLatestId)
+	fmt.Fprintf(w, "%d tweets are collected anew.\n", len(tweets))
+	fmt.Fprintln(w, latestId)
+
 	ctx := appengine.NewContext(r)
 	bucket, err := file.DefaultBucketName(ctx)
 	if err != nil {
@@ -133,10 +88,27 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(idWriter, "%d\n", latestId)
 }
 
+func Markov(w http.ResponseWriter, r *http.Request) {
+	tweets, _ := update.ReadTweets(r, "tweets.txt")
+	ms := make(markov.MarkovSpace2)
+
+	for _, tw := range tweets {
+		surfaces := strings.Split(tw, " ")
+		markov.UpdateMarkovSpace2(ms, surfaces)
+	}
+
+	sentenceNum := 10
+	for i := 0; i < sentenceNum; i++ {
+		s := markov.CreateSentence2(ms)
+		fmt.Fprintf(w, "%s\n", s)
+	}
+}
+
 func init() {
 	FetchTweetsGAE := FetchTweetsHandler(secret.Username, 100, 12345)
 
 	http.HandleFunc(secret.TweetQuery, Tweet)
 	http.HandleFunc(secret.FetchQuery, FetchTweetsGAE)
 	http.HandleFunc(secret.UpdateQuery, Update)
+	http.HandleFunc(secret.MarkovQuery, Markov)
 }

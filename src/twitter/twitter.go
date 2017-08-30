@@ -12,7 +12,7 @@ import (
 
 func FetchTweets(a *anaconda.TwitterApi, username string, n int, sinceId int64) (tweets []string, latestId int64, err error) {
 	tweets = make([]string, 0)
-	latestId = 0
+	latestId = sinceId
 
 	count := 200
 	gettimes := (n + count - 1) / count
