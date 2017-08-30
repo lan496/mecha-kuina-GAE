@@ -18,14 +18,14 @@ func FetchTweets(a *anaconda.TwitterApi, username string, n int, sinceId int64) 
 	gettimes := (n + count - 1) / count
 	var maxId int64
 
-	v := url.Values{}
-	v.Set("screen_name", username)
-	v.Set("exclude_replies", "true")
-	v.Set("include_rts", "false")
-	v.Set("since_id", strconv.FormatInt(sinceId, 10))
-	v.Set("count", strconv.Itoa(count))
-
 	for i := 0; i < gettimes; i++ {
+		v := url.Values{}
+		v.Set("screen_name", username)
+		v.Set("exclude_replies", "true")
+		v.Set("include_rts", "false")
+		v.Set("since_id", strconv.FormatInt(sinceId, 10))
+		v.Set("count", strconv.Itoa(count))
+
 		if maxId != 0 {
 			v.Set("max_id", strconv.FormatInt(maxId, 10))
 		}
@@ -42,10 +42,13 @@ func FetchTweets(a *anaconda.TwitterApi, username string, n int, sinceId int64) 
 		}
 
 		for _, tw := range timeline {
+			if tw.Id < sinceId {
+				break
+			}
 			tweets = append(tweets, tw.Text)
 		}
 
-		if maxId != 0 {
+		if maxId == 0 {
 			latestId = timeline[0].Id
 		}
 		maxId = timeline[len(timeline)-1].Id - 1

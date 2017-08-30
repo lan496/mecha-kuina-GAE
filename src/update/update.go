@@ -25,7 +25,6 @@ func LatestTweetsAndId(sinceId int64) (ss []string, latestId int64, err error) {
 	for _, tw := range tweets {
 		surfaces := twitter.Tokenize(twitter.TrimURL(tw))
 		storedStr := strings.Join(surfaces, " ") + "\n"
-		fmt.Print(storedStr)
 		ss = append(ss, storedStr)
 	}
 	return

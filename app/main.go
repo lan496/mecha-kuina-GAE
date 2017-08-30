@@ -57,7 +57,11 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	prevTweets, _ := update.ReadTweets(r, "tweets.txt")
 	fmt.Fprintf(w, "%d tweets are collected.\n", len(prevTweets))
 
-	tweets, latestId, _ := update.LatestTweetsAndId(prevLatestId)
+	tweets, latestId, err := update.LatestTweetsAndId(prevLatestId + 1)
+	if err != nil {
+		ctx := appengine.NewContext(r)
+		log.Infof(ctx, "twitter API error", err)
+	}
 	fmt.Fprintf(w, "%d tweets are collected anew.\n", len(tweets))
 	fmt.Fprintln(w, latestId)
 

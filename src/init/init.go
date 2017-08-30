@@ -1,8 +1,7 @@
 package main
 
 import (
-	"encoding/json"
-	_ "fmt"
+	"fmt"
 	"github.com/lan496/mecha-kuina/src/update"
 	"log"
 	"os"
@@ -22,24 +21,12 @@ func main() {
 	}
 	defer tweetsFile.Close()
 
-	var dictFile *os.File
-	dictFile, err = os.Create("data/dict.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer dictFile.Close()
+	tweets, latestId, _ := update.LatestTweetsAndId(12345)
 
-	ss, _ := update.StoreTweetsAndLatestId(tweetsFile, idFile, 12345)
+	fmt.Println(latestId)
+	fmt.Fprintf(idFile, "%d\n", latestId)
 
-	ms := make(map[string][]string)
-	for _, tw := range ss {
-		update.UpdateMarkovSpace(ms, tw)
+	for _, tw := range tweets {
+		fmt.Fprintf(tweetsFile, "%s\n", tw)
 	}
-	var dict []byte
-	dict, err = json.Marshal(ms)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	dictFile.Write(dict)
 }
