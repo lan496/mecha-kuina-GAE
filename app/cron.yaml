@@ -1,0 +1,4 @@
+cron:
+- description: post tweets from candidates.txt
+  url: /hoge/tweet
+  schedule: every 30 minutes

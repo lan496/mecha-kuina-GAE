@@ -18,13 +18,11 @@ func main() {
 	fmt.Fscanf(idReader, "%d", &sinceId)
 	fmt.Println(sinceId)
 
-	_, latestId, err := update.LatestTweetsAndId(sinceId)
+	tweets, latestId, err := update.LatestTweetsAndId(sinceId)
 
-	/*
-		for _, tw := range tweets {
-			fmt.Println(tw)
-		}
-	*/
+	for _, tw := range tweets {
+		fmt.Println(tw)
+	}
 
 	fmt.Println(latestId)
 

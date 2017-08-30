@@ -12,9 +12,11 @@ import (
 	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/urlfetch"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 func FetchTweetsHandler(username string, n int, sinceId int64) func(http.ResponseWriter, *http.Request) {
@@ -41,14 +43,21 @@ func Tweet(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	api.HttpClient.Transport = &urlfetch.Transport{Context: ctx}
 
+	candidates, _ := update.ReadTweets(r, "candidates.txt")
+
+	rand.Seed(time.Now().UnixNano())
+	randIdx := rand.Intn(len(candidates))
+
+	sentence := candidates[randIdx]
+
 	v := url.Values{}
-	_, err := api.PostTweet("ファンタジーは好き", v)
+	_, err := api.PostTweet(sentence, v)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	fmt.Fprint(w, "kuinakuina")
+	fmt.Fprint(w, sentence)
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
@@ -57,13 +66,17 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	prevTweets, _ := update.ReadTweets(r, "tweets.txt")
 	fmt.Fprintf(w, "%d tweets are collected.\n", len(prevTweets))
 
-	tweets, latestId, err := update.LatestTweetsAndId(prevLatestId + 1)
+	tweets, latestId, err := update.LatestTweetsAndId(prevLatestId)
 	if err != nil {
 		ctx := appengine.NewContext(r)
 		log.Infof(ctx, "twitter API error", err)
 	}
 	fmt.Fprintf(w, "%d tweets are collected anew.\n", len(tweets))
 	fmt.Fprintln(w, latestId)
+
+	if len(tweets) == 0 {
+		return
+	}
 
 	ctx := appengine.NewContext(r)
 	bucket, err := file.DefaultBucketName(ctx)
@@ -101,10 +114,31 @@ func Markov(w http.ResponseWriter, r *http.Request) {
 		markov.UpdateMarkovSpace2(ms, surfaces)
 	}
 
-	sentenceNum := 10
+	sentenceNum := 200
+	var candidates []string
+
 	for i := 0; i < sentenceNum; i++ {
 		s := markov.CreateSentence2(ms)
 		fmt.Fprintf(w, "%s\n", s)
+		candidates = append(candidates, s)
+	}
+
+	ctx := appengine.NewContext(r)
+	bucket, err := file.DefaultBucketName(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to get default GCS bucket name: %v", err)
+	}
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to get client", err)
+	}
+
+	sentenceWriter := client.Bucket(bucket).Object("candidates.txt").NewWriter(ctx)
+	defer sentenceWriter.Close()
+
+	for _, s := range candidates {
+		fmt.Fprintf(sentenceWriter, "%s\n", s)
 	}
 }
 

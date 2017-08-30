@@ -42,14 +42,11 @@ func FetchTweets(a *anaconda.TwitterApi, username string, n int, sinceId int64) 
 		}
 
 		for _, tw := range timeline {
-			if tw.Id < sinceId {
-				break
-			}
 			tweets = append(tweets, tw.Text)
 		}
 
 		if maxId == 0 {
-			latestId = timeline[0].Id
+			latestId = timeline[0].Id + 1
 		}
 		maxId = timeline[len(timeline)-1].Id - 1
 	}
