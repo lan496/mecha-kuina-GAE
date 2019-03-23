@@ -2,3 +2,7 @@ cron:
 - description: post tweets from candidates.txt
   url: /hoge/tweet
   schedule: every 30 minutes
+- description: update candidates.txt
+  url: /hoge/markov
+  timezone: Asia/Tokyo
+  schedule: every day 00:00

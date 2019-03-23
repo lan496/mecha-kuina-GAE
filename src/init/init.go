@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/ChimeraCoder/anaconda"
+	"github.com/lan496/mecha-kuina/src/secret"
 	"github.com/lan496/mecha-kuina/src/update"
 	"log"
 	"os"
@@ -21,7 +23,11 @@ func main() {
 	}
 	defer tweetsFile.Close()
 
-	tweets, latestId, _ := update.LatestTweetsAndId(12345)
+	anaconda.SetConsumerKey(secret.ConsumerKey)
+	anaconda.SetConsumerSecret(secret.ConsumerSecret)
+	api := anaconda.NewTwitterApi(secret.AccessToken, secret.AccessTokenSecret)
+
+	tweets, latestId, _ := update.LatestTweetsAndId(api, 12345)
 
 	fmt.Println(latestId)
 	fmt.Fprintf(idFile, "%d\n", latestId)

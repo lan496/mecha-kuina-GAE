@@ -66,7 +66,13 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	prevTweets, _ := update.ReadTweets(r, "tweets.txt")
 	fmt.Fprintf(w, "%d tweets are collected.\n", len(prevTweets))
 
-	tweets, latestId, err := update.LatestTweetsAndId(prevLatestId)
+	anaconda.SetConsumerKey(secret.ConsumerKey)
+	anaconda.SetConsumerSecret(secret.ConsumerSecret)
+	api := anaconda.NewTwitterApi(secret.AccessToken, secret.AccessTokenSecret)
+	ctx := appengine.NewContext(r)
+	api.HttpClient.Transport = &urlfetch.Transport{Context: ctx}
+
+	tweets, latestId, err := update.LatestTweetsAndId(api, prevLatestId)
 	if err != nil {
 		ctx := appengine.NewContext(r)
 		log.Infof(ctx, "twitter API error", err)
@@ -78,7 +84,6 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := appengine.NewContext(r)
 	bucket, err := file.DefaultBucketName(ctx)
 	if err != nil {
 		log.Errorf(ctx, "failed to get default GCS bucket name: %v", err)

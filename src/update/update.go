@@ -14,11 +14,7 @@ import (
 	"strings"
 )
 
-func LatestTweetsAndId(sinceId int64) (ss []string, latestId int64, err error) {
-	anaconda.SetConsumerKey(secret.ConsumerKey)
-	anaconda.SetConsumerSecret(secret.ConsumerSecret)
-	api := anaconda.NewTwitterApi(secret.AccessToken, secret.AccessTokenSecret)
-
+func LatestTweetsAndId(api *anaconda.TwitterApi, sinceId int64) (ss []string, latestId int64, err error) {
 	var tweets []string
 	tweets, latestId, err = twitter.FetchTweets(api, secret.Username, 2000, sinceId)
 
